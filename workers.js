@@ -6,7 +6,34 @@ const axios = require('axios');
  * and their associated social channels to broadcast the message.
  */
 
-async function postToBuffer(text, media) {
+function normalizeService(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function mapUiPlatformToBufferService(platform) {
+  const p = normalizeService(platform);
+  switch (p) {
+    case 'twitter':
+    case 'x':
+      return 'twitter';
+    case 'linkedin':
+      return 'linkedin';
+    case 'instagram':
+      return 'instagram';
+    case 'mastodon':
+      return 'mastodon';
+    case 'threads':
+      return 'threads';
+    case 'bluesky':
+      return 'bluesky';
+    case 'facebook':
+      return 'facebook';
+    default:
+      return null;
+  }
+}
+
+async function postToBuffer(text, media, options = {}) {
   const apiKey =
     process.env.BUFFER_TOKEN ||
     process.env.BUFFER_OUTLOOK ||
@@ -16,8 +43,6 @@ async function postToBuffer(text, media) {
     throw new Error(
       "Buffer configuration missing. Set BUFFER_TOKEN (or BUFFER_OUTLOOK / BUFFER_LDOUTLOOK) in your environment."
     );
-
-    console.log ("Buffer API Key:", apiKey); // Debug log to verify the API key being used
   }
 
   const BUFFER_GRAPHQL_URL =
@@ -28,6 +53,14 @@ async function postToBuffer(text, media) {
   };
 
   try {
+    const requestedServices = (options.platforms || [])
+      .map(mapUiPlatformToBufferService)
+      .filter(Boolean);
+
+    if (requestedServices.length === 0) {
+      throw new Error('Select at least one platform to post.');
+    }
+
     // 1. Get Organizations
     const orgsRes = await axios.post(BUFFER_GRAPHQL_URL, {
       query: `
@@ -80,8 +113,23 @@ async function postToBuffer(text, media) {
       throw new Error("No social channels found connected to your Buffer organizations.");
     }
 
-    // 3. Post the message to each channel discovered in parallel
-    const postResults = await Promise.all(allChannels.map(async (channel) => {
+    const selectedChannels = allChannels.filter((c) =>
+      requestedServices.includes(normalizeService(c.service))
+    );
+
+    if (selectedChannels.length === 0) {
+      const available = Array.from(
+        new Set(allChannels.map((c) => normalizeService(c.service)).filter(Boolean))
+      ).sort();
+      throw new Error(
+        `No Buffer channels match the selected platforms. Selected: ${requestedServices.join(
+          ', '
+        )}. Available in Buffer: ${available.join(', ') || '(none)'}.`
+      );
+    }
+
+    // 3. Post the message to each selected channel discovered in parallel
+    const postResults = await Promise.all(selectedChannels.map(async (channel) => {
       try {
         const res = await axios.post(BUFFER_GRAPHQL_URL, {
           query: `
@@ -119,7 +167,7 @@ async function postToBuffer(text, media) {
       throw new Error(`Buffer Posting Error: ${detail}`);
     }
 
-    return `Successfully queued updates to ${allChannels.length} channel(s) via Buffer.`;
+    return `Successfully queued updates to ${selectedChannels.length} channel(s) via Buffer.`;
   } catch (error) {
     // Extract specific API error message if available (e.g. from 401 Unauthorized)
     const apiMsg = error.response?.data?.errors?.[0]?.message || error.response?.data?.message;

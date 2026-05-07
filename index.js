@@ -67,9 +67,15 @@ app.get('/', (req, res) => {
 app.post('/post', upload.single('media'), async (req, res) => {
   const { text } = req.body;
   const media = req.file;
+  const platformsRaw = req.body.platforms;
+  const platforms = Array.isArray(platformsRaw)
+    ? platformsRaw
+    : platformsRaw
+      ? [platformsRaw]
+      : [];
 
   try {
-    const message = await workers.postToBuffer(text, media);
+    const message = await workers.postToBuffer(text, media, { platforms });
     res.json([{ platform: 'Buffer', status: 'Success', message }]);
   } catch (error) {
     console.error('Buffer Posting Error:', {
