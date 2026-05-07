@@ -204,6 +204,18 @@ async function postToBuffer(text, media, options = {}) {
       const postResults = await Promise.all(
         selectedChannels.map(async (channel) => {
           try {
+            const serviceName = normalizeService(channel.service);
+
+            // Replace @ with # for platforms other than Twitter to convert mentions to hashtags
+            let postText = text;
+            if (serviceName !== 'twitter') {
+              postText = postText.replace(/@/g, '#');
+            }
+
+            const postTypeLine = (serviceName === 'facebook' || serviceName === 'instagram')
+              ? '\n                    postType: post,'
+              : '';
+
             const assetsPart = (() => {
               if (!hasMedia) return '';
               console.log (mediaUrl);
@@ -225,6 +237,7 @@ async function postToBuffer(text, media, options = {}) {
                   createPost(input: {
                     text: $text,
                     channelId: $channelId,
+                    ${postTypeLine}
                     schedulingType: automatic,
                     mode: addToQueue${assetsPart ? ',' : ''}${assetsPart}
                   }) {
@@ -233,7 +246,7 @@ async function postToBuffer(text, media, options = {}) {
                   }
                 }
                 `,
-                variables: { text, channelId: channel.id },
+                variables: { text: postText, channelId: channel.id },
               },
               { headers }
             );

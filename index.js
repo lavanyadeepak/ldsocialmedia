@@ -98,6 +98,13 @@ app.post('/post', upload.single('media'), async (req, res) => {
       data: error.response?.data,
     });
     res.status(500).json([{ platform: 'Buffer', status: 'Error', message: error.message }]);
+  } finally {
+    // Cleanup the temporary file to clear the server state and prepare for fresh input
+    if (media && media.path) {
+      fs.unlink(media.path, (err) => {
+        if (err) console.error(`Error removing temporary file ${media.path}:`, err);
+      });
+    }
   }
 });
 
