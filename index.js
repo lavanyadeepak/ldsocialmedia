@@ -47,6 +47,7 @@ const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
+app.use('/uploads', express.static(uploadDir));
 
 // Multer configuration for handling file uploads
 const storage = multer.diskStorage({
@@ -73,9 +74,22 @@ app.post('/post', upload.single('media'), async (req, res) => {
     : platformsRaw
       ? [platformsRaw]
       : [];
+  const textTrimmed = (text || '').trim();
+
+  if (!textTrimmed && !media) {
+    return res
+      .status(400)
+      .json([{ platform: 'Buffer', status: 'Error', message: 'Text or media is required.' }]);
+  }
 
   try {
-    const message = await workers.postToBuffer(text, media, { platforms });
+    let mediaUrl = null;
+    if (media && !process.env.IMG_BB_API_KEY) {
+      const baseUrl = (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      mediaUrl = `${baseUrl}/uploads/${encodeURIComponent(media.filename)}`;
+    }
+
+    const message = await workers.postToBuffer(textTrimmed, media, { platforms, mediaUrl });
     res.json([{ platform: 'Buffer', status: 'Success', message }]);
   } catch (error) {
     console.error('Buffer Posting Error:', {

@@ -73,7 +73,7 @@
     <form id="postForm">
       <div class="field">
         <label for="text">What's on your mind?</label>
-        <textarea id="text" name="text" rows="4" placeholder="Write your post here..." required></textarea>
+        <textarea id="text" name="text" rows="4" placeholder="Write your post here..."></textarea>
       </div>
       <div class="field">
         <label for="media">Media (Images/Video)</label>
@@ -86,7 +86,7 @@
           <label class="platform-chip"><input type="checkbox" name="platforms" value="threads"> Threads</label>
           <label class="platform-chip"><input type="checkbox" name="platforms" value="twitter"> X (Twitter)</label>
           <label class="platform-chip"><input type="checkbox" name="platforms" value="bluesky"> Bluesky</label>
-          <label class="platform-chip"><input type="checkbox" name="platforms" value="linkedin"> LinkedIn</label>
+          <label class="platform-chip"><input type="checkbox" name="platforms" value="facebook"> Facebook</label>
           <label class="platform-chip"><input type="checkbox" name="platforms" value="instagram"> Instagram</label>
           <label class="platform-chip"><input type="checkbox" name="platforms" value="mastodon"> Mastodon</label>
         </div>
@@ -106,6 +106,15 @@
       e.preventDefault();
       
       const form = e.target;
+      const textValue = (document.getElementById('text').value || '').trim();
+      const mediaInput = document.getElementById('media');
+      const hasMedia = mediaInput && mediaInput.files && mediaInput.files.length > 0;
+
+      if (!textValue && !hasMedia) {
+        alert('Please enter text or upload media (at least one is required).');
+        return;
+      }
+
       const formData = new FormData(form);
       const button = form.querySelector('button');
       const loader = document.getElementById('loader');
