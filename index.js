@@ -59,15 +59,62 @@ const upload = multer({ storage });
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Route to preview tweets from a file without posting
+app.post('/preview', upload.single('tweetsFile'), async (req, res) => {
+  const tweetsFile = req.file;
+
+  if (!tweetsFile?.path) {
+    return res.status(400).json({ error: 'Tweets JSON file is required.' });
+  }
+
+  try {
+    const raw = fs.readFileSync(tweetsFile.path, 'utf8');
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      return res.status(400).json({ error: `Invalid JSON: ${e.message}` });
+    }
+
+    const tweets = Array.isArray(parsed?.tweets) ? parsed.tweets : [];
+    const texts = tweets
+      .map((t) => (t && typeof t.text === 'string' ? t.text.trim() : ''))
+      .filter(Boolean);
+
+    if (texts.length === 0) {
+      return res.status(400).json({ error: 'No non-empty tweets found at tweets[].text.' });
+    }
+
+    return res.json({
+      count: texts.length,
+      tweets: texts.map((text, index) => ({
+        id: index,
+        text: text,
+        charCount: text.length
+      }))
+    });
+  } catch (error) {
+    console.error('Preview Error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    if (tweetsFile && tweetsFile.path) {
+      fs.unlink(tweetsFile.path, (err) => {
+        if (err) console.error(`Error removing temporary file ${tweetsFile.path}:`, err);
+      });
+    }
+  }
+});
+
 // Serve the index.html file at the root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Route to handle the form submission
-app.post('/post', upload.single('media'), async (req, res) => {
+app.post('/post', upload.fields([{ name: 'media', maxCount: 1 }, { name: 'tweetsFile', maxCount: 1 }]), async (req, res) => {
   const { text } = req.body;
-  const media = req.file;
+  const media = req.files?.media?.[0] || null;
+  const tweetsFile = req.files?.tweetsFile?.[0] || null;
   const platformsRaw = req.body.platforms;
   const platforms = Array.isArray(platformsRaw)
     ? platformsRaw
@@ -75,14 +122,57 @@ app.post('/post', upload.single('media'), async (req, res) => {
       ? [platformsRaw]
       : [];
   const textTrimmed = (text || '').trim();
+  const wantsBatch = String(req.body.loadTweets || '').toLowerCase() === 'on' || Boolean(tweetsFile);
 
-  if (!textTrimmed && !media) {
+  if (!wantsBatch && !textTrimmed && !media) {
     return res
       .status(400)
       .json([{ platform: 'Buffer', status: 'Error', message: 'Text or media is required.' }]);
   }
 
   try {
+    if (wantsBatch) {
+      if (!tweetsFile?.path) {
+        return res
+          .status(400)
+          .json([{ platform: 'Tweet File', status: 'Error', message: 'Tweets JSON file is required.' }]);
+      }
+
+      const raw = fs.readFileSync(tweetsFile.path, 'utf8');
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        return res.status(400).json([
+          { platform: 'Tweet File', status: 'Error', message: `Invalid JSON: ${e.message}` },
+        ]);
+      }
+
+      const tweets = Array.isArray(parsed?.tweets) ? parsed.tweets : [];
+      const texts = tweets
+        .map((t) => (t && typeof t.text === 'string' ? t.text.trim() : ''))
+        .filter(Boolean);
+
+      if (texts.length === 0) {
+        return res.status(400).json([
+          { platform: 'Tweet File', status: 'Error', message: 'No non-empty tweets found at tweets[].text.' },
+        ]);
+      }
+
+      const results = [];
+      for (let i = 0; i < texts.length; i++) {
+        const tweetText = texts[i];
+        try {
+          const message = await workers.postToBuffer(tweetText, null, { platforms });
+          results.push({ platform: `Tweet ${i + 1}`, status: 'Success', message });
+        } catch (error) {
+          results.push({ platform: `Tweet ${i + 1}`, status: 'Error', message: error.message });
+        }
+      }
+
+      return res.json(results);
+    }
+
     let mediaUrl = null;
     if (media && !process.env.IMG_BB_API_KEY) {
       const baseUrl = (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
@@ -103,6 +193,11 @@ app.post('/post', upload.single('media'), async (req, res) => {
     if (media && media.path) {
       fs.unlink(media.path, (err) => {
         if (err) console.error(`Error removing temporary file ${media.path}:`, err);
+      });
+    }
+    if (tweetsFile && tweetsFile.path) {
+      fs.unlink(tweetsFile.path, (err) => {
+        if (err) console.error(`Error removing temporary file ${tweetsFile.path}:`, err);
       });
     }
   }

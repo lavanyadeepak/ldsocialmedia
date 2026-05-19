@@ -3,146 +3,731 @@
 <head>
   <meta charset="UTF-8">
   <title>Social Media Poster</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --ink: #0f0f0f;
+      --ink-muted: #6b7280;
+      --ink-faint: #9ca3af;
+      --surface: #ffffff;
+      --surface-alt: #f8f8f6;
+      --surface-hover: #f1f0ed;
+      --border: #e5e4df;
+      --border-strong: #d1d0cb;
+      --accent: #1a1a1a;
+      --accent-fg: #ffffff;
+      --success-bg: #f0fdf4;
+      --success-fg: #15803d;
+      --success-border: #bbf7d0;
+      --error-bg: #fef2f2;
+      --error-fg: #dc2626;
+      --error-border: #fecaca;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
     }
-    body { 
-      font-family: 'Inter', -apple-system, sans-serif; 
-      background: var(--bg-gradient); 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh; 
-      margin: 0;
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #f2f1ec;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem 4rem;
     }
-    .card { 
-      background: rgba(255, 255, 255, 0.95); 
-      padding: 2.5rem; 
-      border-radius: 1.5rem; 
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); 
-      width: 100%; 
-      max-width: 480px; 
+
+    .card {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 500px;
+      overflow: hidden;
     }
-    h1 { text-align: center; margin-bottom: 1.5rem; color: #111827; font-size: 1.5rem; font-weight: 700; }
-    .field { margin-bottom:1rem; }
-    label { font-weight:600; margin-bottom:0.5rem; display:block; color: #374151; font-size: 0.9rem; }
-    textarea, input[type="file"] { 
-      width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.75rem; 
-      box-sizing: border-box; font-family: inherit; transition: border-color 0.2s;
+
+    .card-header {
+      padding: 1.5rem 1.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
-    textarea:focus { outline: none; border-color: var(--primary); ring: 2px solid var(--primary); }
-    
-    .platforms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+
+    .card-header-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+
+    .card-header h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+
+    .card-body { padding: 1.5rem 1.75rem; }
+
+    .field { margin-bottom: 1.25rem; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--ink);
+      resize: vertical;
+      transition: border-color 0.15s;
+      background: var(--surface);
+      line-height: 1.5;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    textarea:disabled { background: var(--surface-alt); color: var(--ink-muted); }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--ink-muted);
+      background: var(--surface-alt);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    input[type="file"]:hover { border-color: var(--accent); background: var(--surface-hover); }
+    input[type="file"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Toggle row */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.875rem;
+      background: var(--surface-alt);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .toggle-row:hover { background: var(--surface-hover); }
+
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border-strong);
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch input:checked ~ .toggle-track { background: var(--accent); }
+    .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    .toggle-label-text { font-size: 0.875rem; font-weight: 600; color: var(--ink); }
+    .toggle-label-sub { font-size: 0.78rem; color: var(--ink-muted); margin-left: auto; font-family: 'DM Mono', monospace; }
+
+    /* Batch file section */
+    #tweetsFileField {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 1rem;
+      background: var(--surface-alt);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+    }
+    #tweetsFileField.visible { display: block; }
+
+    .file-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
+
+    /* Platform chips */
+    .platforms-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
     .platform-chip {
-      position: relative; display: flex; align-items: center; justify-content: center;
-      padding: 0.5rem; border: 1px solid #e5e7eb; border-radius: 0.75rem;
-      cursor: pointer; transition: all 0.2s ease; font-size: 0.85rem; font-weight: 500;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.4rem 0.875rem;
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      background: var(--surface);
+      transition: all 0.15s;
+      white-space: nowrap;
     }
     .platform-chip input { position: absolute; opacity: 0; cursor: pointer; height: 0; width: 0; }
-    .platform-chip:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .platform-chip:hover { border-color: var(--ink); color: var(--ink); background: var(--surface-hover); }
     .platform-chip:has(input:checked) {
-      background: var(--primary); color: white; border-color: var(--primary);
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
 
-    button { 
-      width: 100%; background: var(--primary); color: #fff; padding: 0.875rem; 
-      border: none; border-radius: 0.75rem; font-weight: 600; cursor: pointer; 
-      transition: background 0.2s, transform 0.1s; margin-top: 1rem;
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      padding: 0.65rem 1.125rem;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: -0.01em;
     }
-    button:hover:not(:disabled) { background: var(--primary-hover); }
-    button:active { transform: scale(0.98); }
-    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover:not(:disabled) { background: #333; }
+    .btn-primary:active { transform: scale(0.99); }
+    .btn-primary:disabled { background: var(--border-strong); color: var(--ink-faint); cursor: not-allowed; }
 
-    #results { margin-top: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; display: none; }
-    .result-item { 
-      font-size: 0.85rem; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 0.5rem;
-      display: flex; justify-content: space-between;
+    .btn-ghost {
+      background: var(--surface-alt);
+      color: var(--ink);
+      border: 1.5px solid var(--border);
     }
-    .status-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .status-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    
-    .loader { display: none; text-align: center; margin-top: 1rem; font-size: 0.9rem; color: var(--primary); font-weight: 500; }
+    .btn-ghost:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--border-strong); }
+    .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-sm { padding: 0.45rem 0.875rem; font-size: 0.8rem; }
+
+    .submit-wrap { margin-top: 1.5rem; }
+
+    /* Loader */
+    .loader {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.875rem;
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      font-family: 'DM Mono', monospace;
+    }
+    .loader.active { display: flex; }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Results */
+    #results {
+      display: none;
+      margin-top: 1rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    #results h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); font-weight: 600; margin-bottom: 0.625rem; }
+
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.375rem;
+    }
+    .result-item .plat { font-weight: 600; }
+    .status-success { background: var(--success-bg); color: var(--success-fg); border: 1px solid var(--success-border); }
+    .status-error { background: var(--error-bg); color: var(--error-fg); border: 1px solid var(--error-border); }
+
+    /* Media preview */
+    #preview-container img,
+    #preview-container video {
+      max-width: 100%;
+      max-height: 160px;
+      border-radius: var(--radius-sm);
+      margin-top: 0.5rem;
+      border: 1px solid var(--border);
+    }
+
+    /* === MODAL === */
+    #previewModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(2px);
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    #previewModal.open { display: flex; }
+
+    .modal-box {
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 580px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalIn 0.18s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .modal-head {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .modal-head h2 { font-size: 1rem; font-weight: 700; color: var(--ink); }
+    .modal-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--ink-muted);
+      font-size: 1.25rem;
+      line-height: 1;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: color 0.15s;
+      width: auto;
+    }
+    .modal-close:hover { color: var(--ink); }
+
+    .modal-meta {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.8rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--ink-muted);
+      background: var(--surface-alt);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .modal-scroll {
+      overflow-y: auto;
+      flex: 1;
+      padding: 1rem 1.5rem;
+    }
+
+    .tweet-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.875rem;
+      margin-bottom: 0.625rem;
+    }
+    .tweet-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .tweet-num {
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      color: var(--ink-muted);
+      background: var(--surface-alt);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+    }
+    .tweet-chars {
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--ink-faint);
+    }
+    .tweet-chars.over { color: var(--error-fg); font-weight: 600; }
+    .tweet-body {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .modal-foot {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    .modal-foot .btn { width: auto; }
+
+    /* Warning banner inside modal */
+    .warn-banner {
+      display: none;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      color: #92400e;
+      margin-bottom: 0.75rem;
+    }
+    .warn-banner.show { display: block; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Post to Social</h1>
-    <form id="postForm">
-      <div class="field">
-        <label for="text">What's on your mind?</label>
-        <textarea id="text" name="text" rows="4" placeholder="Write your post here..."></textarea>
-      </div>
-      <div class="field">
-        <label for="media">Media (Images/Video)</label>
-        <input type="file" id="media" name="media" accept="image/*,video/*" onchange="previewFile()">
-        <div id="preview-container" style="margin-top: 10px;"></div>
-      </div>
-      <div class="field">
-        <label>Select Platforms</label>
-        <div class="platforms-grid">
-          <label class="platform-chip"><input type="checkbox" name="platforms" value="threads"> Threads</label>
-          <label class="platform-chip"><input type="checkbox" name="platforms" value="twitter"> X (Twitter)</label>
-          <label class="platform-chip"><input type="checkbox" name="platforms" value="bluesky"> Bluesky</label>
-          <label class="platform-chip" style="display: none;"><input type="checkbox" name="platforms" value="facebook"> Facebook</label>
-          <label class="platform-chip" style="display: none;"><input type="checkbox" name="platforms" value="instagram"> Instagram</label>
-          <label class="platform-chip"><input type="checkbox" name="platforms" value="mastodon"> Mastodon</label>
-        </div>
-      </div>
-      <button type="submit">Share Post</button>
-      <div class="loader" id="loader">Processing your posts...</div>
-    </form>
+    <div class="card-header">
+      <div class="card-header-icon">✦</div>
+      <h1>Post to Social</h1>
+    </div>
+    <div class="card-body">
+      <form id="postForm" autocomplete="off">
 
-    <div id="results">
-      <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Results:</h3>
-      <div id="resultsList"></div>
+        <!-- Text -->
+        <div class="field">
+          <label for="text">What's on your mind?</label>
+          <textarea id="text" name="text" rows="4" placeholder="Write your post here…"></textarea>
+        </div>
+
+        <!-- Tweetbank toggle -->
+        <div class="field">
+          <label class="toggle-row" for="loadTweets" style="display:flex; text-transform:none; letter-spacing:0; font-size:inherit; margin-bottom:0; cursor:pointer;">
+            <span class="toggle-switch">
+              <input type="checkbox" id="loadTweets" name="loadTweets">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </span>
+            <span class="toggle-label-text">Load Tweets from Tweetbank</span>
+            <span class="toggle-label-sub">JSON batch</span>
+          </label>
+        </div>
+
+        <!-- Tweetbank file section (hidden until toggle) -->
+        <div id="tweetsFileField">
+          <label for="tweetsFile">Tweetbank JSON</label>
+          <input type="file" id="tweetsFile" name="tweetsFile" accept="application/json,.json">
+          <div class="file-row">
+            <button type="button" class="btn btn-ghost btn-sm" id="previewBtn">Preview Tweets</button>
+            <span id="fileHint" style="font-size:0.78rem; color:var(--ink-muted); font-family:'DM Mono',monospace;"></span>
+          </div>
+        </div>
+
+        <!-- Media -->
+        <div class="field">
+          <label for="media">Media <span style="font-weight:400; color:var(--ink-muted);">(optional)</span></label>
+          <input type="file" id="media" name="media" accept="image/*,video/*" onchange="previewFile()">
+          <div id="preview-container"></div>
+        </div>
+
+        <!-- Platforms -->
+        <div class="field">
+          <label>Platforms</label>
+          <div class="platforms-grid">
+            <label class="platform-chip"><input type="checkbox" name="platforms" value="threads">Threads</label>
+            <label class="platform-chip"><input type="checkbox" name="platforms" value="twitter">𝕏 Twitter</label>
+            <label class="platform-chip"><input type="checkbox" name="platforms" value="bluesky">Bluesky</label>
+            <label class="platform-chip"><input type="checkbox" name="platforms" value="mastodon">Mastodon</label>
+            <label class="platform-chip" style="display:none;"><input type="checkbox" name="platforms" value="facebook">Facebook</label>
+            <label class="platform-chip" style="display:none;"><input type="checkbox" name="platforms" value="instagram">Instagram</label>
+          </div>
+        </div>
+
+        <div class="submit-wrap">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Share Post</button>
+          <div class="loader" id="loader"><span class="spinner"></span> Processing your posts…</div>
+        </div>
+
+      </form>
+
+      <!-- Results -->
+      <div id="results">
+        <h3>Results</h3>
+        <div id="resultsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div id="previewModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modalTitle">Preview Tweetbank</h2>
+        <button class="modal-close" id="closeModal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-meta" id="tweetCount">0 tweets loaded</div>
+      <div class="modal-scroll" id="tweetsPreviewList"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirmBtn">Post All Tweets</button>
+      </div>
     </div>
   </div>
 
   <script>
-    document.getElementById('postForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const form = e.target;
-      const textValue = (document.getElementById('text').value || '').trim();
-      const mediaInput = document.getElementById('media');
-      const hasMedia = mediaInput && mediaInput.files && mediaInput.files.length > 0;
+    // ── State ────────────────────────────────────────────────────────────────
+    let batchMode = false;
+    let previewConfirmed = false;   // ← THE key flag: must be true before /post fires in batch mode
+    let loadedTweetCount = 0;
 
-      if (!textValue && !hasMedia) {
-        alert('Please enter text or upload media (at least one is required).');
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function previewFile() {
+      const input = document.getElementById('media');
+      const container = document.getElementById('preview-container');
+      container.innerHTML = '';
+      if (!input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('video/')) {
+        const v = document.createElement('video');
+        v.src = url; v.controls = true;
+        container.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = url; img.alt = 'Preview';
+        container.appendChild(img);
+      }
+    }
+    window.previewFile = previewFile; // expose for inline handler
+
+    function setBatchMode(on) {
+      batchMode = on;
+      previewConfirmed = false;   // reset confirmation whenever mode changes
+      const text   = document.getElementById('text');
+      const media  = document.getElementById('media');
+      const field  = document.getElementById('tweetsFileField');
+      const tweetsFile = document.getElementById('tweetsFile');
+      const preview = document.getElementById('preview-container');
+
+      if (on) {
+        field.classList.add('visible');
+        text.value = ''; text.disabled = true;
+        media.value = ''; media.disabled = true;
+        if (preview) preview.innerHTML = '';
+      } else {
+        field.classList.remove('visible');
+        text.disabled = false;
+        media.disabled = false;
+        if (tweetsFile) tweetsFile.value = '';
+        document.getElementById('fileHint').textContent = '';
+        loadedTweetCount = 0;
+      }
+    }
+
+    // ── Toggle ───────────────────────────────────────────────────────────────
+    document.getElementById('loadTweets').addEventListener('change', e => {
+      setBatchMode(e.target.checked);
+    });
+
+    // ── Tweetbank file change → reset confirmation ────────────────────────
+    document.getElementById('tweetsFile').addEventListener('change', () => {
+      previewConfirmed = false;
+      loadedTweetCount = 0;
+      document.getElementById('fileHint').textContent = '';
+    });
+
+    // ── Modal helpers ─────────────────────────────────────────────────────
+    const modal        = document.getElementById('previewModal');
+    const closeModalBtn = document.getElementById('closeModal');
+    const cancelBtn    = document.getElementById('cancelBtn');
+    const confirmBtn   = document.getElementById('confirmBtn');
+    const previewBtn   = document.getElementById('previewBtn');
+
+    function openModal()  { modal.classList.add('open'); }
+    function closeModal() { modal.classList.remove('open'); }
+
+    closeModalBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    // ── Preview button ────────────────────────────────────────────────────
+    previewBtn.addEventListener('click', async () => {
+      const fileInput = document.getElementById('tweetsFile');
+      if (!fileInput.files || !fileInput.files.length) {
+        alert('Please select a Tweetbank JSON file first.');
         return;
       }
 
-      const formData = new FormData(form);
-      const button = form.querySelector('button');
-      const loader = document.getElementById('loader');
+      previewBtn.disabled = true;
+      previewBtn.textContent = 'Loading…';
+
+      try {
+        // Read & parse the JSON locally — no network needed for preview
+        const text = await fileInput.files[0].text();
+        let data;
+        try { data = JSON.parse(text); } catch { throw new Error('Invalid JSON file.'); }
+
+        const tweets = Array.isArray(data) ? data : (data.tweets || []);
+        if (!tweets.length) throw new Error('No tweets found in file. Expected a "tweets" array.');
+
+        // Render
+        const listEl   = document.getElementById('tweetsPreviewList');
+        const countEl  = document.getElementById('tweetCount');
+        countEl.textContent = `${tweets.length} tweet${tweets.length !== 1 ? 's' : ''} queued to post`;
+
+        const LIMIT_X = 280;
+        let hasOverLimit = false;
+        listEl.innerHTML = tweets.map((t, i) => {
+          const content = t.text || String(t);
+          const chars = content.length;
+          const over = chars > LIMIT_X;
+          if (over) hasOverLimit = true;
+          return `
+            <div class="tweet-card">
+              <div class="tweet-card-header">
+                <span class="tweet-num">Tweet ${i + 1}</span>
+                <span class="tweet-chars ${over ? 'over' : ''}">${chars} chars${over ? ' ⚠ over X limit' : ''}</span>
+              </div>
+              <div class="tweet-body">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>
+            </div>`;
+        }).join('');
+
+        loadedTweetCount = tweets.length;
+        document.getElementById('fileHint').textContent = `${tweets.length} tweets loaded`;
+        openModal();
+
+      } catch (err) {
+        alert(`Preview error: ${err.message}`);
+      } finally {
+        previewBtn.disabled = false;
+        previewBtn.textContent = 'Preview Tweets';
+      }
+    });
+
+    // ── Confirm (Post All) ────────────────────────────────────────────────
+    confirmBtn.addEventListener('click', () => {
+      previewConfirmed = true;    // ← unlock posting
+      closeModal();
+      // Trigger the actual form submit
+      document.getElementById('postForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+
+    // ── Form submit ───────────────────────────────────────────────────────
+    document.getElementById('postForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const textVal  = (document.getElementById('text').value || '').trim();
+      const mediaInp = document.getElementById('media');
+      const hasMedia = mediaInp?.files?.length > 0;
+      const tweetsFileInp = document.getElementById('tweetsFile');
+      const hasTweetsFile = tweetsFileInp?.files?.length > 0;
+
+      // ── Guard: batch mode requires preview confirmation ──────────────
+      if (batchMode) {
+        if (!hasTweetsFile) {
+          alert('Please upload a Tweetbank JSON file.');
+          return;
+        }
+        if (!previewConfirmed) {
+          // User hit Submit directly without going through Preview — force them through it
+          alert('Please click "Preview Tweets" first to review your tweets before posting.');
+          document.getElementById('previewBtn').focus();
+          return;
+        }
+      } else {
+        if (!textVal && !hasMedia) {
+          alert('Please enter text or upload media.');
+          return;
+        }
+      }
+
+      // ── Check platforms selected ─────────────────────────────────────
+      const platforms = [...document.querySelectorAll('input[name="platforms"]:checked')];
+      if (!platforms.length) {
+        alert('Please select at least one platform.');
+        return;
+      }
+
+      // ── UI lock ───────────────────────────────────────────────────────
+      const submitBtn = document.getElementById('submitBtn');
+      const loader    = document.getElementById('loader');
       const resultsDiv = document.getElementById('results');
       const resultsList = document.getElementById('resultsList');
 
-      // UI Reset
-      button.disabled = true;
-      loader.style.display = 'block';
+      submitBtn.disabled = true;
+      loader.classList.add('active');
       resultsDiv.style.display = 'none';
       resultsList.innerHTML = '';
 
       try {
+        const formData = new FormData(e.target);
         const response = await fetch('/post', { method: 'POST', body: formData });
-        const results = await response.json();
+        const results  = await response.json();
 
         resultsDiv.style.display = 'block';
         resultsList.innerHTML = results.map(res => `
           <div class="result-item ${res.status === 'Success' ? 'status-success' : 'status-error'}">
-            <span><strong>${res.platform}</strong></span>
+            <span class="plat">${res.platform}</span>
             <span>${res.status}</span>
-          </div>
-        `).join('');
+          </div>`).join('');
+
+        // Reset confirmation after successful post
+        previewConfirmed = false;
+
       } catch (err) {
-        alert('An error occurred while posting.');
+        alert('An error occurred while posting. Please try again.');
+        console.error(err);
       } finally {
-        button.disabled = false;
-        loader.style.display = 'none';
+        submitBtn.disabled = false;
+        loader.classList.remove('active');
       }
     });
   </script>

@@ -13,6 +13,35 @@ function normalizeService(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+/**
+ * Character limits and threading rules for supported platforms.
+ */
+  const PLATFORM_LIMITS = {
+    mastodon: 500,
+    twitter: 280,
+    bluesky: 300,
+    threads: 500,
+    linkedin: 3000,
+    facebook: 63206,
+    instagram: 2200,
+  };
+
+function splitTextIntoThreads(text, limit) {
+  if (!text) return [];
+  if (text.length <= limit) return [text];
+  const parts = [];
+  let current = text;
+  while (current.length > limit) {
+    let index = current.lastIndexOf(' ', limit);
+    if (index === -1) index = limit; // Force split if no space found
+    const part = current.substring(0, index).trim();
+    if (part) parts.push(part);
+    current = current.substring(index).trim();
+  }
+  if (current) parts.push(current);
+  return parts.length > 0 ? parts : [text]; // Fallback: return original if no parts created
+}
+
 function mapUiPlatformToBufferService(platform) {
   const p = normalizeService(platform);
   switch (p) {
@@ -205,11 +234,38 @@ async function postToBuffer(text, media, options = {}) {
         selectedChannels.map(async (channel) => {
           try {
             const serviceName = normalizeService(channel.service);
+            const supportsThreads = ['twitter', 'mastodon', 'threads', 'bluesky'].includes(serviceName);
 
             // Replace @ with # for platforms other than Twitter to convert mentions to hashtags
             let postText = text;
             if (serviceName !== 'twitter') {
               postText = postText.replace(/@/g, '#');
+            }
+
+            const limit = PLATFORM_LIMITS[serviceName] || 5000;
+            const parts = splitTextIntoThreads(postText, limit);
+            let firstPart = parts[0];
+            let remainingParts = [];
+
+            if (parts.length > 1) {
+              if (!supportsThreads) {
+                throw new Error(
+                  `${channel.name} (${serviceName}) text is too long (${postText.length} chars). This platform doesn't support threading here.`
+                );
+              }
+
+              // Platforms like X and Mastodon typically support up to 25 posts in a thread
+              let threadParts = parts.slice(1);
+              if (['twitter', 'mastodon'].includes(serviceName) && threadParts.length > 24) {
+                threadParts = threadParts.slice(0, 24);
+              }
+              remainingParts = threadParts.map((p) => ({ text: p }));
+            }
+
+            if (firstPart && firstPart.length > limit) {
+              throw new Error(
+                `${channel.name} (${serviceName}) first post segment exceeds limit (${firstPart.length}/${limit}).`
+              );
             }
 
             const postTypeLine = (serviceName === 'facebook' || serviceName === 'instagram')
@@ -218,7 +274,6 @@ async function postToBuffer(text, media, options = {}) {
 
             const assetsPart = (() => {
               if (!hasMedia) return '';
-              console.log (mediaUrl);
               const safeUrl = JSON.stringify(mediaUrl);
               if (isImage) {
                 return `\n                    assets: { images: [{ url: ${safeUrl} }] }`;
@@ -229,11 +284,40 @@ async function postToBuffer(text, media, options = {}) {
               return '';
             })();
 
+            const hasThread = supportsThreads && remainingParts.length > 0;
+            const metadataThreadLine = (() => {
+  if (!hasThread) return '';
+          switch (serviceName) {
+                  case 'twitter':
+                    return `\n                    metadata: { twitter: { thread: $thread } },`;
+                  case 'mastodon':
+                    return `\n                    metadata: { mastodon: { threaded_posts: $thread } },`;
+                  case 'bluesky':
+                    return `\n                    metadata: { bluesky: { thread: $thread } },`;
+                  case 'threads':
+                    return `\n                    metadata: { threads: { threaded_posts: $thread } },`;
+                  default:
+                    return '';
+                }
+              })();
+
             const res = await axios.post(
               BUFFER_GRAPHQL_URL,
               {
-                query: `
-                mutation CreatePost($text: String!, $channelId: ChannelId!) {
+                query: hasThread
+                  ? `mutation CreatePost($text: String!, $channelId: ChannelId!, $thread: [ThreadedPostInput!]) {
+                  createPost(input: {
+                    text: $text,
+                    channelId: $channelId,${metadataThreadLine}
+                    ${postTypeLine}
+                    schedulingType: automatic,
+                    mode: addToQueue${assetsPart ? ',' : ''}${assetsPart}
+                  }) {
+                    ... on PostActionSuccess { post { id metadata { ... on TwitterPostMetadata { threadCount } ... on MastodonPostMetadata { threadCount } ... on ThreadsPostMetadata { threadCount } ... on BlueskyPostMetadata { threadCount } } } }
+                    ... on MutationError { message }
+                  }
+                }`
+                  : `mutation CreatePost($text: String!, $channelId: ChannelId!) {
                   createPost(input: {
                     text: $text,
                     channelId: $channelId,
@@ -241,12 +325,21 @@ async function postToBuffer(text, media, options = {}) {
                     schedulingType: automatic,
                     mode: addToQueue${assetsPart ? ',' : ''}${assetsPart}
                   }) {
-                    ... on PostActionSuccess { post { id } }
+                    ... on PostActionSuccess { post { id metadata { ... on TwitterPostMetadata { threadCount } ... on MastodonPostMetadata { threadCount } ... on ThreadsPostMetadata { threadCount } ... on BlueskyPostMetadata { threadCount } } } }
                     ... on MutationError { message }
                   }
                 }
                 `,
-                variables: { text: postText, channelId: channel.id },
+                variables: hasThread
+                  ? {
+                      text: firstPart,
+                      channelId: channel.id,
+                      thread: remainingParts,
+                    }
+                  : {
+                      text: firstPart,
+                      channelId: channel.id,
+                    },
               },
               { headers }
             );
@@ -256,6 +349,10 @@ async function postToBuffer(text, media, options = {}) {
             }
             if (res.data.data?.createPost?.message) {
               return { channel: channel.name, error: res.data.data.createPost.message };
+            }
+            const threadCount = res.data.data?.createPost?.post?.metadata?.threadCount;
+            if (hasThread) {
+              console.log(`[Buffer] ${channel.name} (${serviceName}) threadCount=${threadCount ?? 'n/a'}`);
             }
             return { channel: channel.name, success: true };
           } catch (err) {
